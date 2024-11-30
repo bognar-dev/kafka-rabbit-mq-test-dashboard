@@ -1,101 +1,174 @@
-import Image from "next/image";
+"use client";
+import React, { useState, useEffect } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 
-export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+const PerformanceDashboard = () => {
+  interface Metric {
+    timestamp: string;
+    messageCount: number;
+    throughput: number;
+    latency: number;
+    cpuUsage: number;
+  }
+  
+  interface MetricsState {
+    kafka: { data: Metric[]; current: Partial<Metric> };
+    rabbitmq: { data: Metric[]; current: Partial<Metric> };
+  }
+  
+  const [metrics, setMetrics] = useState<MetricsState>({
+    kafka: { data: [], current: {} },
+    rabbitmq: { data: [], current: {} }
+  });
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    const fetchMetrics = async () => {
+      try {
+        const response = await fetch('/api/metrics');
+        const newMetrics = await response.json();
+        
+        setMetrics(prevMetrics => ({
+          kafka: {
+            data: [...prevMetrics.kafka.data, newMetrics.kafka],
+            current: newMetrics.kafka
+          },
+          rabbitmq: {
+            data: [...prevMetrics.rabbitmq.data, newMetrics.rabbitmq],
+            current: newMetrics.rabbitmq
+          }
+        }));
+      } catch (error) {
+        console.error('Failed to fetch metrics:', error);
+      }
+    };
+
+    const interval = setInterval(fetchMetrics, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  interface MetricCardProps {
+    title: string;
+    kafka: number;
+    rabbitmq: number;
+    unit?: string;
+  }
+
+  const MetricCard = ({ title, kafka, rabbitmq, unit = '' }: MetricCardProps) => (
+    <Card className="w-full">
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="text-center">
+            <div className="text-2xl font-bold">{kafka}{unit}</div>
+            <div className="text-sm text-gray-500">Kafka</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl font-bold">{rabbitmq}{unit}</div>
+            <div className="text-sm text-gray-500">RabbitMQ</div>
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+      </CardContent>
+    </Card>
+  );
+
+  return (
+    <div className="p-6 space-y-6">
+      <h1 className="text-3xl font-bold">Messaging Performance Dashboard</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard 
+          title="Messages Processed"
+          kafka={metrics.kafka.current.messageCount || 0}
+          rabbitmq={metrics.rabbitmq.current.messageCount || 0}
+        />
+        <MetricCard 
+          title="Throughput"
+          kafka={Math.round(metrics.kafka.current.throughput || 0)}
+          rabbitmq={Math.round(metrics.rabbitmq.current.throughput || 0)}
+          unit=" msg/s"
+        />
+        <MetricCard 
+          title="Latency"
+          kafka={Number(metrics.kafka.current.latency?.toFixed(2))|| 0} 
+          rabbitmq={Number(metrics.rabbitmq.current.latency?.toFixed(2)) || 0}
+          unit=" ms"
+        />
+        <MetricCard 
+          title="CPU Usage"
+          kafka={Number(metrics.kafka.current.cpuUsage?.toFixed(1)) || 0}
+          rabbitmq={Number(metrics.rabbitmq.current.cpuUsage?.toFixed(1)) || 0}
+          unit="%"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Throughput Over Time</CardTitle>
+          </CardHeader>
+          <CardContent className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="timestamp" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="throughput" 
+                  data={metrics.kafka.data} 
+                  stroke="#8884d8" 
+                  name="Kafka" 
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="throughput" 
+                  data={metrics.rabbitmq.data} 
+                  stroke="#82ca9d" 
+                  name="RabbitMQ" 
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Latency Over Time</CardTitle>
+          </CardHeader>
+          <CardContent className="h-80">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="timestamp" />
+                <YAxis />
+                <Tooltip />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="latency" 
+                  data={metrics.kafka.data} 
+                  stroke="#8884d8" 
+                  name="Kafka" 
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="latency" 
+                  data={metrics.rabbitmq.data} 
+                  stroke="#82ca9d" 
+                  name="RabbitMQ" 
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
-}
+};
+
+export default PerformanceDashboard;
